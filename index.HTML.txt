@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOUNT CARMEL INTERNATIONAL SCHOOL – Attendance</title>
+  <style>
+:root {
+  --bg: #fffaf4;
+  --card: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --line: #f0e4d6;
+  --brand: #ED8936;
+  --brand-dark: #c05621;
+  --brand-soft: #feebc8;
+  --on-brand: #2d1a08;
+  --present: #2f9e44;
+  --absent: #e03131;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.topbar {
+  background: var(--brand);
+  color: var(--on-brand);
+  padding: 18px 24px 0;
+}
+.topbar h1 { margin: 0; font-size: 1.45rem; letter-spacing: .04em; }
+.topbar .sub { margin: 2px 0 12px; font-size: .9rem; opacity: .85; }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab {
+  border: none;
+  background: transparent;
+  color: var(--on-brand);
+  padding: 10px 18px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+}
+.tab:hover { background: rgba(255, 255, 255, .25); }
+.tab.active { background: var(--bg); color: var(--brand-dark); font-weight: 600; }
+
+main { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+.panel { display: none; background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.panel.active { display: block; }
+
+.toolbar { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+.toolbar label { display: flex; flex-direction: column; font-size: .85rem; color: var(--muted); gap: 4px; }
+input, select {
+  padding: 9px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 140px;
+}
+input:focus, select:focus { outline: 2px solid var(--brand); border-color: transparent; }
+
+.btn { border: none; padding: 10px 16px; border-radius: 8px; font-size: .95rem; cursor: pointer; font-weight: 600; }
+.btn.primary { background: var(--brand); color: var(--on-brand); }
+.btn.secondary { background: var(--brand-soft); color: var(--brand-dark); }
+.btn.danger { background: #ffe3e3; color: var(--absent); padding: 6px 12px; }
+.btn:hover { filter: brightness(.95); }
+
+.summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip { padding: 6px 12px; border-radius: 999px; font-size: .85rem; font-weight: 600; background: #f3f4f6; }
+.chip.p { background: #d3f9d8; color: var(--present); }
+.chip.a { background: #ffe3e3; color: var(--absent); }
+.filter-row { align-items: center; margin-bottom: 8px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--brand-dark); background: #fff7ed; }
+
+.status-group { display: inline-flex; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+.status-group button {
+  border: none; background: #fff; padding: 7px 18px; cursor: pointer; font-size: .9rem; color: var(--muted);
+}
+.status-group button + button { border-left: 1px solid #e5e7eb; }
+.status-group button.sel-P { background: var(--present); color: #fff; }
+.status-group button.sel-A { background: var(--absent); color: #fff; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.table-wrap table { min-width: 100%; width: max-content; }
+.table-wrap th:nth-child(1), .table-wrap td:nth-child(1) { position: sticky; left: 0; background: #fff; }
+.table-wrap th:nth-child(1) { background: #fff7ed; }
+.dcol { text-align: center; white-space: nowrap; min-width: 54px; }
+td.m-P, b.m-P { color: var(--present); font-weight: 700; }
+td.m-A, b.m-A { color: var(--absent); font-weight: 700; }
+td.m-none { color: #c4c4c4; }
+td.m-P { background: #ebfbee; }
+td.m-A { background: #fff0f0; }
+.hint { color: var(--muted); font-size: .85rem; margin: 0 0 10px; }
+
+.pct-good { color: var(--present); font-weight: 700; }
+.pct-mid { color: var(--brand-dark); font-weight: 700; }
+.pct-low { color: var(--absent); font-weight: 700; }
+
+.empty { color: var(--muted); text-align: center; padding: 24px 0; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #212529; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: .95rem;
+}
+
+@media (max-width: 600px) {
+  .topbar h1 { font-size: 1.1rem; }
+  .toolbar label, input, select { width: 100%; }
+  .status-group button { padding: 7px 14px; }
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>🏫 MOUNT CARMEL INTERNATIONAL SCHOOL</h1>
+    <p class="sub">Attendance Register</p>
+    <nav>
+      <button class="tab active" data-tab="mark">Mark Attendance</button>
+      <button class="tab" data-tab="students">Students</button>
+      <button class="tab" data-tab="reports">Reports</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- MARK ATTENDANCE -->
+    <section id="mark" class="panel active">
+      <div class="toolbar">
+        <label>Class
+          <select id="markClass"></select>
+        </label>
+        <label>Date
+          <input type="date" id="markDate">
+        </label>
+        <button id="allPresent" class="btn secondary">Mark all Present</button>
+        <button id="saveAttendance" class="btn primary">Save Attendance</button>
+      </div>
+
+      <div class="summary" id="markSummary"></div>
+
+      <table>
+        <thead>
+          <tr><th>Roll</th><th>Name</th><th>Status</th></tr>
+        </thead>
+        <tbody id="markBody"></tbody>
+      </table>
+      <p class="empty" id="markEmpty" hidden>No students in this class yet. Add some in the Students tab.</p>
+    </section>
+
+    <!-- STUDENTS -->
+    <section id="students" class="panel">
+      <form id="studentForm" class="toolbar">
+        <label>Roll No.
+          <input type="text" id="sRoll" required maxlength="10">
+        </label>
+        <label>Name
+          <input type="text" id="sName" required maxlength="60">
+        </label>
+        <label>Class
+          <input type="text" id="sClass" required maxlength="20" placeholder="e.g. Class 5" list="classList">
+          <datalist id="classList"></datalist>
+        </label>
+        <button class="btn primary" type="submit">Add Student</button>
+      </form>
+
+      <div class="toolbar filter-row">
+        <label>Show class
+          <select id="stuFilter"></select>
+        </label>
+        <span class="chip" id="stuCount"></span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Roll</th><th>Name</th><th>Class</th><th></th></tr>
+        </thead>
+        <tbody id="studentBody"></tbody>
+      </table>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="reports" class="panel">
+      <div class="toolbar">
+        <label>Class
+          <select id="repClass"></select>
+        </label>
+        <label>From
+          <input type="date" id="repFrom">
+        </label>
+        <label>To
+          <input type="date" id="repTo">
+        </label>
+        <button id="runReport" class="btn primary">Show Report</button>
+        <button id="exportXlsx" class="btn secondary">⬇ Excel (this class)</button>
+        <button id="exportAll" class="btn secondary">⬇ Excel (all classes)</button>
+      </div>
+
+      <p class="hint">Har tareekh ka record: <b class="m-P">P</b> = Present, <b class="m-A">A</b> = Absent, – = mark nahi hua.</p>
+      <div class="table-wrap">
+        <table id="repTable">
+          <thead id="repHead"></thead>
+          <tbody id="repBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="repEmpty" hidden>No attendance records found for this selection.</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+// ---------- Storage ----------
+const KEY_STUDENTS = "att_students";
+const KEY_ATTENDANCE = "att_records";
+const KEY_SEED = "att_seed_v2";
+
+let students = JSON.parse(localStorage.getItem(KEY_STUDENTS) || "[]");
+// attendance = { "2026-10-29": { studentId: "P" | "A" } }
+let attendance = JSON.parse(localStorage.getItem(KEY_ATTENDANCE) || "{}");
+// older saved data may contain "L" (late) from the earlier version: count it as present
+Object.values(attendance).forEach((day) => Object.keys(day).forEach((id) => { if (day[id] === "L") day[id] = "P"; }));
+// working copy of the day being marked (not saved until "Save Attendance")
+let draft = {};
+
+const save = () => {
+  localStorage.setItem(KEY_STUDENTS, JSON.stringify(students));
+  localStorage.setItem(KEY_ATTENDANCE, JSON.stringify(attendance));
+};
+
+// ---------- Sample data: Class 1 to Class 10, 20 students each ----------
+const FIRST_NAMES = [
+  "Aarav", "Vivaan", "Aditya", "Arjun", "Reyansh", "Krishna", "Ishaan", "Kabir", "Rohan", "Dev",
+  "Ananya", "Diya", "Aanya", "Saanvi", "Myra", "Kiara", "Navya", "Riya", "Pari", "Ira",
+  "Harsh", "Yash", "Karan", "Manav", "Nikhil", "Priya", "Simran", "Tanvi", "Meera", "Sneha",
+  "Gurpreet", "Harpreet", "Jaspreet", "Manpreet", "Amandeep", "Navjot", "Rajveer", "Sukhman", "Arshdeep", "Kiran",
+  "Aryan", "Vihaan", "Atharv", "Shaurya", "Ayaan", "Tara", "Zoya", "Ishita", "Kavya", "Avni"
+];
+const LAST_NAMES = [
+  "Sharma", "Verma", "Singh", "Kumar", "Gupta", "Mehta", "Kapoor", "Malhotra", "Bansal", "Arora",
+  "Chopra", "Sethi", "Gill", "Sandhu", "Dhillon", "Bajwa", "Joshi", "Reddy", "Nair", "Khanna"
+];
+
+function seedStudents() {
+  if (localStorage.getItem(KEY_SEED)) return;
+  for (let c = 1; c <= 10; c++) {
+    for (let i = 1; i <= 20; i++) {
+      const g = (c - 1) * 20 + (i - 1); // 0..199, every name pair is unique
+      const first = FIRST_NAMES[g % FIRST_NAMES.length];
+      const last = LAST_NAMES[(g * 7 + Math.floor(g / FIRST_NAMES.length)) % LAST_NAMES.length];
+      const cls = "Class " + c;
+      if (students.some((s) => s.cls === cls && s.roll === String(i))) continue;
+      students.push({ id: `seed-${c}-${i}`, roll: String(i), name: `${first} ${last}`, cls });
+    }
+  }
+  localStorage.setItem(KEY_SEED, "1");
+  save();
+}
+seedStudents();
+
+// ---------- Helpers ----------
+const $ = (id) => document.getElementById(id);
+const todayStr = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+};
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const BASE_CLASSES = Array.from({ length: 10 }, (_, i) => "Class " + (i + 1));
+const classes = () =>
+  [...new Set([...BASE_CLASSES, ...students.map((s) => s.cls)])].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
+const byRoll = (a, b) => a.roll.localeCompare(b.roll, undefined, { numeric: true });
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => (t.hidden = true), 2200);
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    $(btn.dataset.tab).classList.add("active");
+    refreshAll();
+  })
+);
+
+// ---------- Class dropdowns ----------
+function fillClassSelects() {
+  const list = classes();
+  const options = list.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  ["markClass", "repClass"].forEach((id) => {
+    const sel = $(id);
+    const prev = sel.value;
+    sel.innerHTML = options;
+    sel.value = list.includes(prev) ? prev : list[0];
+  });
+  const f = $("stuFilter");
+  const prevF = f.value;
+  f.innerHTML = `<option value="">All classes</option>` + options;
+  f.value = prevF === "" || list.includes(prevF) ? prevF : "";
+  $("classList").innerHTML = list.map((c) => `<option value="${esc(c)}">`).join("");
+}
+
+// ---------- Mark attendance ----------
+function loadDraft() {
+  const date = $("markDate").value;
+  const cls = $("markClass").value;
+  const saved = attendance[date] || {};
+  draft = {};
+  students.filter((s) => s.cls === cls).forEach((s) => {
+    if (saved[s.id]) draft[s.id] = saved[s.id];
+  });
+  renderMark();
+}
+
+function renderMark() {
+  const cls = $("markClass").value;
+  const list = students.filter((s) => s.cls === cls).sort(byRoll);
+  $("markEmpty").hidden = list.length > 0;
+
+  $("markBody").innerHTML = list
+    .map((s) => {
+      const st = draft[s.id];
+      const btn = (code, label) =>
+        `<button data-id="${s.id}" data-status="${code}" class="${st === code ? "sel-" + code : ""}">${label}</button>`;
+      return `<tr>
+        <td>${esc(s.roll)}</td>
+        <td>${esc(s.name)}</td>
+        <td><div class="status-group">${btn("P", "Present")}${btn("A", "Absent")}</div></td>
+      </tr>`;
+    })
+    .join("");
+
+  const count = (c) => list.filter((s) => draft[s.id] === c).length;
+  const unmarked = list.filter((s) => !draft[s.id]).length;
+  $("markSummary").innerHTML = list.length
+    ? `<span class="chip p">Present: ${count("P")}</span>
+       <span class="chip a">Absent: ${count("A")}</span>
+       <span class="chip">Not marked: ${unmarked}</span>`
+    : "";
+}
+
+$("markBody").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-id]");
+  if (!b) return;
+  draft[b.dataset.id] = b.dataset.status;
+  renderMark();
+});
+
+$("allPresent").addEventListener("click", () => {
+  students.filter((s) => s.cls === $("markClass").value).forEach((s) => (draft[s.id] = "P"));
+  renderMark();
+});
+
+$("saveAttendance").addEventListener("click", () => {
+  const date = $("markDate").value;
+  const cls = $("markClass").value;
+  const list = students.filter((s) => s.cls === cls);
+  if (!date || !list.length) return toast("Pick a class with students and a date.");
+  const missing = list.filter((s) => !draft[s.id]).length;
+  if (missing && !confirm(`${missing} student(s) are not marked. Save anyway?`)) return;
+
+  attendance[date] = attendance[date] || {};
+  list.forEach((s) => {
+    if (draft[s.id]) attendance[date][s.id] = draft[s.id];
+    else delete attendance[date][s.id];
+  });
+  save();
+  toast("Attendance saved ✔");
+});
+
+$("markClass").addEventListener("change", loadDraft);
+$("markDate").addEventListener("change", loadDraft);
+
+// ---------- Students ----------
+function renderStudents() {
+  const filter = $("stuFilter").value;
+  const list = students
+    .filter((s) => !filter || s.cls === filter)
+    .sort((a, b) => a.cls.localeCompare(b.cls, undefined, { numeric: true }) || byRoll(a, b));
+  $("stuCount").textContent = `${list.length} student${list.length === 1 ? "" : "s"}`;
+  $("studentBody").innerHTML = list.length
+    ? list.map((s) => `<tr>
+        <td>${esc(s.roll)}</td><td>${esc(s.name)}</td><td>${esc(s.cls)}</td>
+        <td><button class="btn danger" data-del="${s.id}">Remove</button></td>
+      </tr>`).join("")
+    : `<tr><td colspan="4" class="empty">No students found.</td></tr>`;
+}
+
+$("stuFilter").addEventListener("change", renderStudents);
+
+$("studentForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const roll = $("sRoll").value.trim();
+  const name = $("sName").value.trim();
+  const cls = $("sClass").value.trim();
+  if (!roll || !name || !cls) return;
+  if (students.some((s) => s.cls === cls && s.roll === roll)) return toast("That roll number already exists in this class.");
+  students.push({ id: "s" + Date.now() + Math.floor(Math.random() * 1000), roll, name, cls });
+  save();
+  e.target.reset();
+  $("sRoll").focus();
+  refreshAll();
+  toast("Student added");
+});
+
+$("studentBody").addEventListener("click", (e) => {
+  const id = e.target.dataset.del;
+  if (!id) return;
+  const s = students.find((x) => x.id === id);
+  if (!confirm(`Remove ${s.name}? Their attendance records will also be deleted.`)) return;
+  students = students.filter((x) => x.id !== id);
+  Object.values(attendance).forEach((day) => delete day[id]);
+  save();
+  refreshAll();
+});
+
+// ---------- Reports (date-wise) ----------
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const fmtFull = (d) => d.split("-").reverse().join("-");                  // 2026-10-29 -> 29-10-2026
+const fmtShort = (d) => `${+d.slice(8)} ${MONTHS[+d.slice(5, 7) - 1]}`;   // 2026-10-29 -> 29 Oct
+
+// For one class: the dates that have attendance saved, and each student's P/A on each date
+function buildReport(cls = $("repClass").value) {
+  const from = $("repFrom").value;
+  const to = $("repTo").value;
+  const list = students.filter((s) => s.cls === cls).sort(byRoll);
+  const ids = new Set(list.map((s) => s.id));
+  const dates = Object.keys(attendance)
+    .filter((d) => (!from || d >= from) && (!to || d <= to) && Object.keys(attendance[d]).some((id) => ids.has(id)))
+    .sort();
+
+  const rows = list.map((s) => {
+    const marks = dates.map((d) => attendance[d][s.id] || "");
+    const P = marks.filter((m) => m === "P").length;
+    const A = marks.filter((m) => m === "A").length;
+    const total = P + A;
+    return { roll: s.roll, name: s.name, marks, P, A, total, pct: total ? Math.round((P / total) * 100) : null };
+  });
+  return { cls, dates, rows };
+}
+
+function renderReport() {
+  const rep = buildReport();
+  const hasData = rep.dates.length > 0;
+  $("repEmpty").hidden = hasData;
+  $("repTable").hidden = !hasData;
+  if (!hasData) { $("repHead").innerHTML = ""; $("repBody").innerHTML = ""; return; }
+
+  $("repHead").innerHTML = `<tr><th>Roll</th><th>Name</th>
+    ${rep.dates.map((d) => `<th class="dcol" title="${fmtFull(d)}">${fmtShort(d)}</th>`).join("")}
+    <th>Present</th><th>Absent</th><th>Attendance %</th></tr>`;
+
+  $("repBody").innerHTML = rep.rows.map((r) => {
+    const pc = r.pct === null ? "" : r.pct >= 90 ? "pct-good" : r.pct >= 75 ? "pct-mid" : "pct-low";
+    const cells = r.marks.map((m) => (m ? `<td class="dcol m-${m}">${m}</td>` : `<td class="dcol m-none">–</td>`)).join("");
+    return `<tr><td>${esc(r.roll)}</td><td>${esc(r.name)}</td>${cells}
+      <td>${r.P}</td><td>${r.A}</td><td class="${pc}">${r.pct === null ? "—" : r.pct + "%"}</td></tr>`;
+  }).join("");
+}
+
+$("runReport").addEventListener("click", renderReport);
+$("repClass").addEventListener("change", renderReport);
+$("repFrom").addEventListener("change", renderReport);
+$("repTo").addEventListener("change", renderReport);
+
+// ---------- Excel / CSV export ----------
+const WORD = { P: "Present", A: "Absent" };
+
+// Rows for one class: Roll, Name, one column per date, totals; plus daily totals at the bottom
+function reportToRows(rep) {
+  const rows = [["Roll", "Name", ...rep.dates.map(fmtFull), "Total Present", "Total Absent", "Attendance %"]];
+  rep.rows.forEach((r) => rows.push([r.roll, r.name, ...r.marks.map((m) => WORD[m] || ""), r.P, r.A, r.pct === null ? "" : r.pct]));
+  rows.push([]);
+  rows.push(["", "Present (day total)", ...rep.dates.map((_, i) => rep.rows.filter((r) => r.marks[i] === "P").length)]);
+  rows.push(["", "Absent (day total)", ...rep.dates.map((_, i) => rep.rows.filter((r) => r.marks[i] === "A").length)]);
+  return rows;
+}
+
+function sheetFor(rep) {
+  const ws = XLSX.utils.aoa_to_sheet(reportToRows(rep));
+  ws["!cols"] = [{ wch: 7 }, { wch: 24 }, ...rep.dates.map(() => ({ wch: 12 })), { wch: 14 }, { wch: 13 }, { wch: 14 }];
+  return ws;
+}
+
+const fileStamp = () => `${$("repFrom").value || "start"}_to_${$("repTo").value || "today"}`;
+
+function downloadCsv(rep) {
+  const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = reportToRows(rep).map((r) => r.map(q).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" }));
+  a.download = `attendance_${rep.cls.replace(/\s+/g, "_")}_${fileStamp()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+$("exportXlsx").addEventListener("click", () => {
+  const rep = buildReport();
+  if (!rep.dates.length) return toast("Is selection mein koi attendance nahi hai.");
+  if (typeof XLSX === "undefined") { downloadCsv(rep); return toast("Excel library load nahi hui (internet chahiye) - CSV download hui, Excel mein khul jayegi."); }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheetFor(rep), rep.cls.slice(0, 31));
+  XLSX.writeFile(wb, `attendance_${rep.cls.replace(/\s+/g, "_")}_${fileStamp()}.xlsx`);
+  toast("Excel download ho gayi ✔");
+});
+
+$("exportAll").addEventListener("click", () => {
+  const reps = classes().map((c) => buildReport(c)).filter((r) => r.dates.length);
+  if (!reps.length) return toast("Is selection mein koi attendance nahi hai.");
+  if (typeof XLSX === "undefined") return toast("Excel library load nahi hui - internet chalu karke dobara try kijiye.");
+  const wb = XLSX.utils.book_new();
+  reps.forEach((rep) => XLSX.utils.book_append_sheet(wb, sheetFor(rep), rep.cls.slice(0, 31)));
+  XLSX.writeFile(wb, `attendance_all_classes_${fileStamp()}.xlsx`);
+  toast(`${reps.length} class ki Excel download ho gayi ✔`);
+});
+
+// ---------- Init ----------
+function refreshAll() {
+  fillClassSelects();
+  renderStudents();
+  loadDraft();
+  renderReport();
+}
+
+$("markDate").value = todayStr();
+$("repTo").value = todayStr();
+const monthStart = new Date(); monthStart.setDate(1);
+monthStart.setMinutes(monthStart.getMinutes() - monthStart.getTimezoneOffset());
+$("repFrom").value = monthStart.toISOString().slice(0, 10);
+refreshAll();
+
+</script>
+</body>
+</html>
